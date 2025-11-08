@@ -58,13 +58,14 @@ const WalletDashboard: React.FC<WalletDashboardProps> = ({ balance, transactions
         <TransactionForm type={modalType} onSubmit={handleTransaction} onCancel={() => setIsModalOpen(false)} title={modalType === 'deposit' ? 'Make a Deposit' : 'Withdraw Funds'} />
     </Modal>
     <div className="bg-gray-800 rounded-xl p-6 shadow-2xl border border-gray-700 flex flex-col">
-      <h2 className="text-2xl font-bold mb-1 text-indigo-300 flex items-center">
+      <h2 className="text-2xl font-bold mb-2 text-indigo-300 flex items-center">
         <Icon name="wallet" className="mr-3"/>
         Financials
       </h2>
-       <p className="text-sm text-yellow-400 bg-yellow-900/50 border border-yellow-600 rounded-md p-2 mb-4">
-        Note: Financial features are for demonstration purposes only. No real transactions are processed.
-      </p>
+       <div className="text-sm text-yellow-400 bg-yellow-900/50 border border-yellow-600 rounded-md p-3 mb-4 flex items-start">
+         <Icon name="info" className="w-5 h-5 mr-2 mt-0.5 flex-shrink-0"/>
+         <span>Financial features are for demonstration purposes only. No real money is involved or transacted.</span>
+       </div>
       <div className="mb-6 text-center bg-gray-900 p-4 rounded-lg">
         <p className="text-gray-400 text-sm">CURRENT BALANCE</p>
         <p className="text-4xl font-bold text-green-400 tracking-tight">${balance.toFixed(2)}</p>

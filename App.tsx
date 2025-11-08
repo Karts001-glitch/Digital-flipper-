@@ -13,10 +13,12 @@ import PurchaseModal from './components/PurchaseModal';
 import SubscriptionView from './components/SubscriptionView';
 import CreatorDashboard from './components/CreatorDashboard';
 import { ToastProvider, useToast } from './components/common/Toast';
+import SimulationDisclaimerModal from './components/common/SimulationDisclaimerModal';
 
 const AppContent: React.FC = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [platformRevenue, setPlatformRevenue] = useState(0);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   const [currentTool, setCurrentTool] = useState<Tool>('products');
   const [view, setView] = useState<'finding' | 'autopilot'>('finding');
@@ -84,6 +86,11 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if(isSubscribed) {
+        const disclaimerShown = sessionStorage.getItem('disclaimerShown');
+        if (!disclaimerShown) {
+            setShowDisclaimer(true);
+        }
+
         if(currentTool === 'products') {
             loadProducts();
         } else {
@@ -223,6 +230,11 @@ const AppContent: React.FC = () => {
     toast.show(`Withdrawal of $${amount.toFixed(2)} initiated to your Visa card.`, 'success');
   };
 
+  const handleDisclaimerConfirm = () => {
+    sessionStorage.setItem('disclaimerShown', 'true');
+    setShowDisclaimer(false);
+  };
+
 
   const renderMainContent = () => {
     if (error && view === 'finding' && products.length === 0 && domains.length === 0) {
@@ -296,14 +308,15 @@ const AppContent: React.FC = () => {
         .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
       `}</style>
       <Header />
+      <SimulationDisclaimerModal isOpen={showDisclaimer} onConfirm={handleDisclaimerConfirm} />
       <PurchaseModal
-        isOpen={!!itemToPurchase}
+        isOpen={!!itemToPurchase && !showDisclaimer}
         onClose={() => setItemToPurchase(null)}
         item={itemToPurchase}
         balance={balance}
         onConfirm={handleConfirmPurchase}
       />
-      <main className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow">
+      <main className={`container mx-auto p-4 sm:p-6 lg:p-8 flex-grow transition-all duration-300 ${showDisclaimer ? 'blur-sm' : ''}`}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
               <div className="lg:col-span-2 h-[85vh] flex flex-col">
                  <ToolSelector currentTool={currentTool} setTool={setCurrentTool} />
