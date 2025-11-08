@@ -21,6 +21,7 @@ const AppContent: React.FC = () => {
   const [currentTool, setCurrentTool] = useState<Tool>('products');
   const [view, setView] = useState<'finding' | 'autopilot'>('finding');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isBackgroundLoading, setIsBackgroundLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
   
@@ -50,8 +51,9 @@ const AppContent: React.FC = () => {
     toast.show(message, 'error');
   };
 
-  const loadProducts = useCallback(async () => {
-    setIsLoading(true);
+  const loadProducts = useCallback(async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
+    else setIsBackgroundLoading(true);
     setError(null);
     try {
       const fetchedProducts = await findProductDeals();
@@ -59,12 +61,14 @@ const AppContent: React.FC = () => {
     } catch (err) {
       handleError(err, 'Failed to load products.');
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
+      else setIsBackgroundLoading(false);
     }
   }, [toast]);
 
-  const loadDomains = useCallback(async () => {
-    setIsLoading(true);
+  const loadDomains = useCallback(async (isBackground = false) => {
+    if (!isBackground) setIsLoading(true);
+    else setIsBackgroundLoading(true);
     setError(null);
     try {
         const fetchedDomains = await findExpiredDomains();
@@ -72,7 +76,8 @@ const AppContent: React.FC = () => {
     } catch (err) {
        handleError(err, 'Failed to load domains.');
     } finally {
-        setIsLoading(false);
+        if (!isBackground) setIsLoading(false);
+        else setIsBackgroundLoading(false);
     }
   }, [toast]);
 
@@ -85,7 +90,22 @@ const AppContent: React.FC = () => {
             loadDomains();
         }
     }
-  }, [currentTool, loadProducts, loadDomains, isSubscribed]);
+  }, [currentTool, isSubscribed]);
+
+  useEffect(() => {
+    if (!isSubscribed || view !== 'finding') return;
+
+    const interval = setInterval(() => {
+        if (currentTool === 'products') {
+            loadProducts(true);
+        } else {
+            loadDomains(true);
+        }
+    }, 30000); // Auto-refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isSubscribed, view, currentTool, loadProducts, loadDomains]);
+
 
   const handleInitiatePurchase = (item: PurchasableItem) => {
       setItemToPurchase(item);
@@ -243,16 +263,18 @@ const AppContent: React.FC = () => {
             return <ProductList 
                       products={products} 
                       isLoading={isLoading} 
+                      isBackgroundLoading={isBackgroundLoading}
                       onSelectProduct={handleInitiatePurchase}
-                      onRefresh={loadProducts}
+                      onRefresh={() => loadProducts()}
                     />;
         }
         if (currentTool === 'domains') {
             return <ExpiredDomainList 
                         domains={domains}
                         isLoading={isLoading}
+                        isBackgroundLoading={isBackgroundLoading}
                         onSelectDomain={handleInitiatePurchase}
-                        onRefresh={loadDomains}
+                        onRefresh={() => loadDomains()}
                     />
         }
     }
@@ -266,6 +288,13 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 font-sans flex flex-col">
+       <style>{`
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeInUp { animation: fadeInUp 0.5s ease-out forwards; }
+      `}</style>
       <Header />
       <PurchaseModal
         isOpen={!!itemToPurchase}

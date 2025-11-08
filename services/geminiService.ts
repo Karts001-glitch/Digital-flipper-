@@ -104,7 +104,11 @@ export async function generateMarketingPlan(product: Product): Promise<Marketing
 
 let expertChat: Chat | null = null;
 
-export async function getExpertAdvice(history: ChatMessage[], newMessage: string): Promise<string> {
+export async function streamExpertAdvice(
+    history: ChatMessage[], 
+    newMessage: string, 
+    onChunk: (chunk: string) => void
+): Promise<void> {
     try {
         if (!expertChat) {
             expertChat = ai.chats.create({
@@ -116,8 +120,11 @@ export async function getExpertAdvice(history: ChatMessage[], newMessage: string
             });
         }
         
-        const response = await expertChat.sendMessage({ message: newMessage });
-        return response.text;
+        const responseStream = await expertChat.sendMessageStream({ message: newMessage });
+
+        for await (const chunk of responseStream) {
+            onChunk(chunk.text);
+        }
 
     } catch (error) {
         console.error("Error getting expert advice:", error);

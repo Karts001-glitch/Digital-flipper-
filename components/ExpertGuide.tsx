@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
-import { getExpertAdvice } from '../services/geminiService';
+import { streamExpertAdvice } from '../services/geminiService';
 import Icon from './common/Icon';
 
 const ExpertGuide: React.FC = () => {
@@ -17,23 +17,37 @@ const ExpertGuide: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const handleSendMessage = async () => {
     if (input.trim() === '' || isLoading) return;
 
-    const userMessage: ChatMessage = { role: 'user', content: input.trim() };
-    setMessages(prev => [...prev, userMessage]);
+    const currentInput = input.trim();
+    const userMessage: ChatMessage = { role: 'user', content: currentInput };
+    
+    // Add user message and an empty placeholder for the model's response
+    setMessages(prev => [...prev, userMessage, { role: 'model', content: '' }]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const modelResponse = await getExpertAdvice([...messages], input.trim());
-      const modelMessage: ChatMessage = { role: 'model', content: modelResponse };
-      setMessages(prev => [...prev, modelMessage]);
+      await streamExpertAdvice(
+        [...messages, userMessage], // Send history including the new user message
+        currentInput, 
+        (chunk) => {
+          setMessages(prev => {
+            const lastMessage = prev[prev.length - 1];
+            const updatedLastMessage = { ...lastMessage, content: lastMessage.content + chunk };
+            return [...prev.slice(0, -1), updatedLastMessage];
+          });
+        }
+      );
     } catch (error) {
-      const errorMessage: ChatMessage = { role: 'model', content: "Sorry, I'm having trouble connecting right now. Please try again later." };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => {
+          const lastMessage = prev[prev.length - 1];
+          const updatedLastMessage = { ...lastMessage, content: "Sorry, I'm having trouble connecting right now. Please try again later." };
+          return [...prev.slice(0, -1), updatedLastMessage];
+      });
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -57,20 +71,13 @@ const ExpertGuide: React.FC = () => {
           <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
              {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0"><Icon name="chatBubble" className="w-5 h-5 text-white"/></div>}
             <div className={`max-w-xs md:max-w-md lg:max-w-xs xl:max-w-sm rounded-lg px-4 py-2 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-200'}`}>
-              <p className="text-sm">{msg.content}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {msg.content}
+                {isLoading && index === messages.length -1 && <span className="inline-block w-2 h-4 bg-white animate-pulse ml-1"></span>}
+              </p>
             </div>
           </div>
         ))}
-         {isLoading && (
-            <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center flex-shrink-0"><Icon name="chatBubble" className="w-5 h-5 text-white"/></div>
-                <div className="max-w-xs md:max-w-md lg:max-w-xs xl:max-w-sm rounded-lg px-4 py-2 bg-gray-700 text-gray-200 flex items-center">
-                    <div className="w-2 h-2 bg-indigo-300 rounded-full animate-pulse mr-2"></div>
-                    <div className="w-2 h-2 bg-indigo-300 rounded-full animate-pulse mr-2 delay-150"></div>
-                    <div className="w-2 h-2 bg-indigo-300 rounded-full animate-pulse delay-300"></div>
-                </div>
-            </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
       <div className="flex items-center">

@@ -10,12 +10,12 @@ interface ExpiredDomainCardProps {
 
 const ExpiredDomainCard: React.FC<ExpiredDomainCardProps> = ({ domain, onSelect }) => {
   return (
-    <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700 hover:border-indigo-500 transition-all duration-300 transform hover:-translate-y-1 flex flex-col">
+    <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg border border-gray-700 hover:border-indigo-500 transition-all duration-300 transform hover:-translate-y-1 flex flex-col group animate-fadeInUp">
       <div className="p-6 flex-grow">
         <span className="inline-block bg-indigo-500 text-white text-xs font-semibold px-2 py-1 rounded-full mb-2 uppercase">
           {domain.category}
         </span>
-        <h3 className="text-2xl font-bold text-white mb-2 font-mono">{domain.domainName}</h3>
+        <h3 className="text-2xl font-bold text-white mb-2 font-mono group-hover:text-indigo-300 transition-colors">{domain.domainName}</h3>
         
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div className="bg-gray-700 p-2 rounded-md">
